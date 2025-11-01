@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "cd apps/nandeesh-web && pnpm build",
   "outputDirectory": "apps/nandeesh-web/.next",
-  "installCommand": "cd apps/nandeesh-web && pnpm install",
+  "installCommand": "cd apps/nandeesh-web && pnpm install --no-frozen-lockfile",
   "framework": "nextjs",
   "env": {
     "NODE_ENV": "production",
