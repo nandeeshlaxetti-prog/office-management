@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
     console.log(`🔍 Advocate search: ${searchType} in ${courtType} court`)
     console.log(`📋 Parameters:`, { advocateNumber, advocateName, state, year, complex })
 
-    // Initialize ECourts provider with multi-provider support
+    // Initialize ECourts provider with Kleopatra API only
     const config = {
       provider: 'third_party' as const,
-      apiKey: process.env.ECOURTS_API_KEY || process.env.NEXT_PUBLIC_ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104', // Supports Official E-Courts v17.0, Kleopatra, Phoenix, and Surepass
+      apiKey: process.env.KLEOPATRA_API_KEY || process.env.ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104', // Kleopatra API Key
       timeout: 30000
     }
     const ecourtsProvider = new ECourtsProvider(config)
@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Advocate search POST: ${searchType} in ${courtType} court`)
     console.log(`📋 Parameters:`, { advocateNumber, advocateName, state, year, complex })
 
-    // Initialize ECourts provider with multi-provider support
+    // Initialize ECourts provider with Kleopatra API only
     const config = {
       provider: 'third_party' as const,
-      apiKey: process.env.ECOURTS_API_KEY || process.env.NEXT_PUBLIC_ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104', // Supports Official E-Courts v17.0, Kleopatra, Phoenix, and Surepass
+      apiKey: process.env.KLEOPATRA_API_KEY || process.env.ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104', // Kleopatra API Key
       timeout: 30000
     }
     const ecourtsProvider = new ECourtsProvider(config)

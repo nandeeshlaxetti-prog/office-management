@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { unifiedDataService } from '@/lib/unified-data-service'
 import { cloudStorageService } from '@/lib/cloud-storage-service'
+import DailyCauseList from '@/app/components/DailyCauseList'
 import { 
   FolderIcon, 
   UserIcon, 
@@ -194,6 +195,9 @@ export default function UnifiedDashboard() {
           ))}
         </div>
       </div>
+
+      {/* Daily Cause List */}
+      <DailyCauseList />
 
       {/* Interconnected Features */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

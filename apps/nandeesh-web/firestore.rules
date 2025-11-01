@@ -1,0 +1,147 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Development mode: Allow all read/write operations for all collections
+    // This enables full functionality for cloud storage features
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    /* Production rules (commented out for development)
+    // Allow authenticated users to read/write all data
+    
+    // Cases Management
+    match /cases/{caseId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Activities Tracking
+    match /activities/{activityId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Sync Status
+    match /syncStatus/{statusId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Sync Metadata
+    match /syncMetadata/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Tasks Management
+    match /tasks/{taskId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Projects Management
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Contacts Management
+    match /contacts/{contactId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Hearings Management
+    match /hearings/{hearingId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Orders Management
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Documents Management
+    match /documents/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Advocates Management
+    match /advocates/{advocateId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Clients Management
+    match /clients/{clientId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // User Data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User Activity Tracking
+    match /userActivity/{activityId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Audit Logs
+    match /auditLogs/{logId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Reminders
+    match /reminders/{reminderId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Calendar Events
+    match /calendar/{eventId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Time Tracking
+    match /timeTracking/{entryId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Billing Management
+    match /billing/{billId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Payments
+    match /payments/{paymentId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Reports
+    match /reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Settings
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Templates
+    match /templates/{templateId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Case Notes
+    match /caseNotes/{noteId} {
+      allow read, write: if request.auth != null;
+    }
+    */
+  }
+}
+

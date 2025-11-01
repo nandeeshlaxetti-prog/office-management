@@ -82,8 +82,19 @@ export interface UserActivity {
   details?: string
 }
 
+export interface TeamMember {
+  id?: string
+  name: string
+  role: string
+  email?: string
+  phone?: string
+  createdAt?: Date | Timestamp
+  updatedAt?: Date | Timestamp
+}
+
 class CloudStorageService {
   private casesCollection = 'cases'
+  private teamMembersCollection = 'teamMembers'
   private syncStatusCollection = 'syncStatus'
   private activitiesCollection = 'activities'
   private usersCollection = 'users'

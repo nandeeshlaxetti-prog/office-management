@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Client, ClientType, seedClients } from './_types';
+import { useState, useMemo, useEffect } from 'react';
+import { Client, ClientType } from './_types';
 import { NewClientModal } from './_components/NewClientModal';
 import { ClientTable } from './_components/ClientTable';
 import { ClientDrawer } from './_components/ClientDrawer';
@@ -9,16 +9,35 @@ import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { StaggeredCards } from '@/components/anim/StaggeredList';
 import { useToast } from '@/components/ui/toast';
+import { cloudStorageService } from '@/lib/cloud-storage-service';
 
 export default function ContactsPage() {
   const { toast } = useToast();
-  const [clients, setClients] = useState<Client[]>(seedClients);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<ClientType | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Load contacts from cloud storage
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        const cloudContacts = await cloudStorageService.getAllContacts();
+        setClients(cloudContacts);
+      } catch (error) {
+        console.error("Failed to load contacts from cloud:", error);
+        setClients([]);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    
+    loadContacts();
+  }, []);
 
   const filteredClients = useMemo(() => {
     let filtered = clients;
@@ -42,7 +61,7 @@ export default function ContactsPage() {
     return filtered;
   }, [clients, typeFilter, searchQuery]);
 
-  const handleAddClient = (clientData: {
+  const handleAddClient = async (clientData: {
     type: ClientType;
     name: string;
     contactPerson?: string;
@@ -56,14 +75,28 @@ export default function ContactsPage() {
     website?: string;
     notes?: string;
   }) => {
-    const newClient: Client = {
-      id: Date.now().toString(),
-      ...clientData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setClients(prev => [...prev, newClient]);
-    toast.success('Client added successfully!');
+    try {
+      const clientId = await cloudStorageService.addContact(clientData);
+      const newClient: Client = {
+        id: clientId,
+        ...clientData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setClients(prev => [...prev, newClient]);
+      toast.success('Client added successfully!');
+    } catch (error) {
+      console.error("Failed to add contact to cloud:", error);
+      // Still add to local state for immediate UI update
+      const newClient: Client = {
+        id: Date.now().toString(),
+        ...clientData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setClients(prev => [...prev, newClient]);
+      toast.success('Client added successfully!');
+    }
   };
 
   const handleEditClient = (client: Client) => {
@@ -71,8 +104,15 @@ export default function ContactsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClient = (clientId: string) => {
-    setClients(prev => prev.filter(client => client.id !== clientId));
+  const handleDeleteClient = async (clientId: string) => {
+    try {
+      await cloudStorageService.deleteContact(clientId);
+      setClients(prev => prev.filter(client => client.id !== clientId));
+    } catch (error) {
+      console.error("Failed to delete contact from cloud:", error);
+      // Still delete from local state for immediate UI update
+      setClients(prev => prev.filter(client => client.id !== clientId));
+    }
   };
 
   const handleViewClient = (client: Client) => {

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const COURT_API_BASE = process.env.COURT_API_BASE || "https://court-api.kleopatra.io";
 const PHOENIX_BASE   = process.env.PHOENIX_BASE || "https://court-api.kleopatra.io";
-const COURT_API_KEY  = process.env.COURT_API_KEY || process.env.NEXT_PUBLIC_ECOURTS_API_KEY || "klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104";
+const COURT_API_KEY  = process.env.KLEOPATRA_API_KEY || process.env.COURT_API_KEY || "klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104";
 
 const PATH = {
   CNR:    process.env.COURT_API_PATH_CNR    || "/v17/cases/by-cnr",

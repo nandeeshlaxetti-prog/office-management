@@ -1,6 +1,6 @@
-# LNN Legal Desktop
+# Office Management
 
-A comprehensive legal practice management system built with Next.js, TypeScript, and modern web technologies.
+A comprehensive office and legal practice management system built with Next.js, TypeScript, and modern web technologies.
 
 ## 🚀 Features
 
@@ -45,7 +45,7 @@ A comprehensive legal practice management system built with Next.js, TypeScript,
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
-cd lnn-legal-desktop
+cd office-management
 ```
 
 2. Install dependencies:
@@ -76,7 +76,7 @@ Set these in your Vercel dashboard:
 - `NODE_ENV` = `production`
 - `APP_MODE` = `web`
 - `NEXT_PUBLIC_APP_URL` = `https://your-app.vercel.app`
-- `NEXT_PUBLIC_APP_NAME` = `LNN Legal Desktop`
+- `NEXT_PUBLIC_APP_NAME` = `Office Management`
 
 ## 📝 Available Scripts
 

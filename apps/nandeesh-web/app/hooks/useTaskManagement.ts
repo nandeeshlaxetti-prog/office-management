@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../tasks/_types';
 import { useTeamManagement } from './useTeamManagement';
-
-const LOCAL_STORAGE_KEY = 'lnn-legal-tasks';
+import { cloudStorageService } from '@/lib/cloud-storage-service';
 
 // Seed data for tasks
 const seedTasks: Task[] = [
@@ -80,54 +79,84 @@ export function useTaskManagement() {
   const [isLoaded, setIsLoaded] = useState(false);
   const { employees: teamMembers, isLoaded: teamLoaded } = useTeamManagement();
 
+  // Load tasks from cloud storage
   useEffect(() => {
-    try {
-      const storedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
-      } else {
+    const loadTasks = async () => {
+      try {
+        const cloudTasks = await cloudStorageService.getAllTasks();
+        if (cloudTasks && cloudTasks.length > 0) {
+          setTasks(cloudTasks);
+        } else {
+          // No cloud tasks, use seed data
+          setTasks(seedTasks);
+        }
+      } catch (error) {
+        console.error("Failed to load tasks from cloud:", error);
+        // Fallback to seed data
         setTasks(seedTasks);
+      } finally {
+        setIsLoaded(true);
       }
-    } catch (error) {
-      console.error("Failed to load tasks from localStorage:", error);
-      setTasks(seedTasks); // Fallback to seed data
-    } finally {
-      setIsLoaded(true);
-    }
+    };
+    
+    loadTasks();
   }, []);
 
-  useEffect(() => {
-    if (isLoaded) { // Only save once loaded to avoid overwriting seed data on first render
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasks));
-      } catch (error) {
-        console.error("Failed to save tasks to localStorage:", error);
-      }
+  const addTask = async (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const taskId = await cloudStorageService.addTask(newTask);
+      const taskWithMetadata: Task = {
+        ...newTask,
+        id: taskId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setTasks(prev => [...prev, taskWithMetadata]);
+    } catch (error) {
+      console.error("Failed to add task to cloud:", error);
+      // Still add to local state for immediate UI update
+      const taskWithMetadata: Task = {
+        ...newTask,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setTasks(prev => [...prev, taskWithMetadata]);
     }
-  }, [tasks, isLoaded]);
-
-  const addTask = (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const taskWithMetadata: Task = {
-      ...newTask,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setTasks(prev => [...prev, taskWithMetadata]);
   };
 
-  const updateTask = (taskId: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => {
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === taskId
-          ? { ...task, ...updates, updatedAt: new Date().toISOString() }
-          : task
-      )
-    );
+  const updateTask = async (taskId: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => {
+    try {
+      await cloudStorageService.updateTask(taskId, updates);
+      setTasks(prev =>
+        prev.map(task =>
+          task.id === taskId
+            ? { ...task, ...updates, updatedAt: new Date().toISOString() }
+            : task
+        )
+      );
+    } catch (error) {
+      console.error("Failed to update task in cloud:", error);
+      // Still update local state for immediate UI update
+      setTasks(prev =>
+        prev.map(task =>
+          task.id === taskId
+            ? { ...task, ...updates, updatedAt: new Date().toISOString() }
+            : task
+        )
+      );
+    }
   };
 
-  const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
+  const deleteTask = async (taskId: string) => {
+    try {
+      await cloudStorageService.deleteTask(taskId);
+      setTasks(prev => prev.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.error("Failed to delete task from cloud:", error);
+      // Still delete from local state for immediate UI update
+      setTasks(prev => prev.filter(task => task.id !== taskId));
+    }
   };
 
   const getTasksByStatus = (status: TaskStatus) => {

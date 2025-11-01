@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       const response = await fetch(kleopatraEndpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.COURT_API_KEY || process.env.NEXT_PUBLIC_ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104'}`,
+          'Authorization': `Bearer ${process.env.KLEOPATRA_API_KEY || process.env.COURT_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104'}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
           const fallbackResponse = await fetch(endpoint, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.COURT_API_KEY || process.env.NEXT_PUBLIC_ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104'}`,
+              'Authorization': `Bearer ${process.env.KLEOPATRA_API_KEY || process.env.COURT_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104'}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({

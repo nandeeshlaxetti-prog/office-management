@@ -150,7 +150,7 @@ export class ECourtsProvider {
   constructor(config?: ECourtsConfig) {
     this.config = {
       provider: config?.provider || (process.env.ECOURTS_PROVIDER as ECourtsProviderType) || 'official',
-      apiKey: config?.apiKey || process.env.ECOURTS_API_KEY || process.env.NEXT_PUBLIC_ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104',
+      apiKey: config?.apiKey || process.env.KLEOPATRA_API_KEY || process.env.ECOURTS_API_KEY || 'klc_2cef7fc42178c58211cd8b8b1d23c3206c1e778f13ed566237803d8897a9b104',
       baseUrl: config?.baseUrl,
       timeout: config?.timeout || 120000
     }
@@ -349,12 +349,9 @@ export class ECourtsProvider {
    */
   private async getCaseFromThirdPartyAPI(cnr: string, courtType: 'district' | 'high' | 'supreme' | 'nclt' | 'consumer' = 'district'): Promise<ECourtsResponse<ECourtsCaseData>> {
     try {
-      // Try multiple API providers in order of preference (Official APIs first)
+      // Use Kleopatra API only
       const providers = [
-        { name: 'ECourts_v17', endpoint: this.THIRD_PARTY_ENDPOINTS.ECOURTS_V17 },
-        { name: 'Kleopatra', endpoint: this.THIRD_PARTY_ENDPOINTS.KLEOPATRA },
-        { name: 'Phoenix', endpoint: this.THIRD_PARTY_ENDPOINTS.PHOENIX },
-        { name: 'Surepass', endpoint: this.THIRD_PARTY_ENDPOINTS.SUREPASS }
+        { name: 'Kleopatra', endpoint: this.THIRD_PARTY_ENDPOINTS.KLEOPATRA }
       ]
 
       if (this.config.apiKey) {
@@ -362,42 +359,22 @@ export class ECourtsProvider {
           try {
             console.log(`🔍 Attempting ${provider.name} API with key:`, this.config.apiKey.substring(0, 10) + '...')
             
-            // Determine the correct endpoint based on court type and provider
+            // Use Kleopatra API endpoint
             let apiEndpoint: string
             let requestBody: any
             
-            if (provider.name === 'ECourts_v17') {
-              // Official E-Courts India API v17.0 endpoints
+            // Use the correct Kleopatra CNR search endpoint from documentation
+            // For district court: https://court-api.kleopatra.io/api/core/live/district-court/case
               const endpointMap: Record<string, string> = {
-                'district': 'district-court',
-                'high': 'high-court', 
-                'supreme': 'supreme-court',
-                'nclt': 'nclt',
-                'consumer': 'consumer-forum'
-              }
-              apiEndpoint = `${provider.endpoint}/cases/${endpointMap[courtType]}/search`
-              requestBody = {
-                cnr: cnr,
-                court_type: courtType,
-                search_type: 'cnr'
-              }
-            } else if (provider.name === 'Kleopatra') {
-              // Use the correct Kleopatra CNR search endpoint from documentation
-              apiEndpoint = `${provider.endpoint}${this.API_PATHS.KLEOPATRA.CNR}`
-              requestBody = { cnr: cnr }
-            } else if (provider.name === 'Phoenix') {
-              // Phoenix API endpoints based on the Postman documentation
-              apiEndpoint = `${provider.endpoint}/api/v1/cases/search`
-              requestBody = {
-                cnr: cnr,
-                court_type: courtType,
-                search_type: 'cnr'
-              }
-            } else {
-              // Surepass and other providers
-              apiEndpoint = `${provider.endpoint}/search`
-              requestBody = { cnr: cnr }
+              'district': '/api/core/live/district-court/case',
+              'high': '/api/core/live/high-court/case',
+              'supreme': '/api/core/live/supreme-court/case',
+              'nclt': '/api/core/live/nclt/case',
+              'consumer': '/api/core/live/consumer-forum/case'
             }
+            
+            apiEndpoint = `${provider.endpoint}${endpointMap[courtType] || endpointMap['district']}`
+              requestBody = { cnr: cnr }
             
             console.log(`🔍 Using ${provider.name} ${courtType} court endpoint:`, apiEndpoint)
             console.log('📤 Sending request:', requestBody)
@@ -419,42 +396,20 @@ export class ECourtsProvider {
               if (response.data.title || response.data.parties || response.data.cnr || response.data.case_details) {
                 console.log(`✅ ${provider.name} response validation passed - mapping data...`)
                 
-                if (provider.name === 'ECourts_v17') {
-                  return {
-                    success: true,
-                    data: this.mapECourtsV17ResponseToCaseData(response.data, cnr)
-                  }
-                } else if (provider.name === 'Phoenix') {
-                  return {
-                    success: true,
-                    data: this.mapPhoenixResponseToCaseData(response.data, cnr)
-                  }
-                } else {
+                // Use Kleopatra response mapping
                   return {
                     success: true,
                     data: this.mapKleopatraResponseToCaseData(response.data, cnr)
-                  }
                 }
               }
               
               // Check if response is an array with case data
               if (Array.isArray(response.data) && response.data.length > 0) {
                 const caseData = response.data[0]
-                if (provider.name === 'ECourts_v17') {
-                  return {
-                    success: true,
-                    data: this.mapECourtsV17ResponseToCaseData(caseData, cnr)
-                  }
-                } else if (provider.name === 'Phoenix') {
-                  return {
-                    success: true,
-                    data: this.mapPhoenixResponseToCaseData(caseData, cnr)
-                  }
-                } else {
+                // Use Kleopatra response mapping
                   return {
                     success: true,
                     data: this.mapKleopatraResponseToCaseData(caseData, cnr)
-                  }
                 }
               }
             }
@@ -477,107 +432,24 @@ export class ECourtsProvider {
           }
         }
         
-        // If all providers fail, try fallback court types with Kleopatra
-        console.log('🔄 Trying fallback court types with Kleopatra...')
-        const endpointMap: Record<string, string> = {
-          'district': 'district-court',
-          'high': 'high-court', 
-          'supreme': 'supreme-court',
-          'nclt': 'nclt',
-          'consumer': 'consumer-forum'
-        }
-        
-        const fallbackCourtTypes = ['district', 'high', 'supreme', 'nclt', 'consumer'].filter(type => type !== courtType)
-        
-        for (const fallbackCourtType of fallbackCourtTypes) {
-          try {
-            console.log(`🔍 Trying fallback ${fallbackCourtType} court endpoint`)
-            const fallbackEndpoint = `${this.THIRD_PARTY_ENDPOINTS.KLEOPATRA}/api/core/live/${endpointMap[fallbackCourtType]}/case`
-            
-            const altResponse = await axios.post(fallbackEndpoint, {
-              cnr: cnr
-            }, {
-              headers: {
-                'Authorization': `Bearer ${this.config.apiKey}`,
-                'Content-Type': 'application/json'
-              },
-              timeout: 120000 // 2 minutes timeout for browser environment
-            })
-
-            console.log(`✅ Fallback ${fallbackCourtType} court endpoint success:`, altResponse.status)
-            console.log('📊 Response data:', altResponse.data)
-            
-            if (altResponse.data && Object.keys(altResponse.data).length > 0) {
-              return {
-                success: true,
-                data: this.mapKleopatraResponseToCaseData(altResponse.data, cnr)
-              }
-            } else {
-              console.log(`⚠️ Empty response from fallback ${fallbackCourtType} court endpoint`)
-            }
-          } catch (altError) {
-            console.log(`⚠️ Fallback ${fallbackCourtType} court endpoint failed:`, altError instanceof Error ? altError.message : 'Unknown error')
-            continue
-          }
-        }
-
-        // Try Surepass API
-        try {
-          const surepassResponse = await axios.post(`${this.THIRD_PARTY_ENDPOINTS.SUREPASS}`, {
-            cnr: cnr
-          }, {
-            headers: {
-              'Authorization': `Bearer ${this.config.apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: this.config.timeout
-          })
-
-          if (surepassResponse.data) {
-            return {
-              success: true,
-              data: this.mapThirdPartyResponseToCaseData(surepassResponse.data, cnr)
-            }
-          }
-        } catch (surepassError) {
-          console.log('Surepass API failed, trying Legalkart...')
-        }
-
-        // Try Legalkart API
-        try {
-          const legalkartResponse = await axios.get(`${this.THIRD_PARTY_ENDPOINTS.LEGALKART}/cnr/${cnr}`, {
-            headers: {
-              'X-API-KEY': this.config.apiKey,
-              'Content-Type': 'application/json'
-            },
-            timeout: this.config.timeout
-          })
-
-          if (legalkartResponse.data) {
-            return {
-              success: true,
-              data: this.mapThirdPartyResponseToCaseData(legalkartResponse.data, cnr)
-            }
-          }
-        } catch (legalkartError) {
-          console.log('Legalkart API failed')
-        }
+        // If Kleopatra API fails, return error
+        console.log('❌ Kleopatra API failed')
       }
 
-      // If all third-party APIs fail, return error
+      // If Kleopatra API fails, return error
       return {
         success: false,
-        error: 'THIRD_PARTY_API_ERROR',
-        message: 'All third-party APIs are not accessible. Please check API keys or try manual provider.',
+        error: 'KLEOPATRA_API_ERROR',
+        message: 'Kleopatra API is not accessible. Please check API key.',
         requiresManual: true
       }
 
     } catch (error) {
-      console.error('Third-party API error:', error)
+      console.error('Kleopatra API error:', error)
       return {
         success: false,
-        error: 'THIRD_PARTY_API_ERROR',
-        message: 'Third-party APIs are not accessible',
+        error: 'KLEOPATRA_API_ERROR',
+        message: 'Kleopatra API is not accessible',
         requiresManual: true
       }
     }
@@ -732,93 +604,86 @@ export class ECourtsProvider {
    * Map Kleopatra API response to our case data format
    */
   private mapKleopatraResponseToCaseData(apiData: any, cnr: string): ECourtsCaseData {
-    const caseData = apiData.data || apiData
+    // Use the top-level data directly (Kleopatra returns data at root level)
+    const data = apiData.data || apiData
     
-    // Extract registration number from multiple possible locations
-    const registrationNumber = apiData.details?.registrationNumber ||
-                              apiData.registrationNumber || 
-                              apiData.regNumber || 
-                              caseData.details?.registrationNumber ||
-                              caseData.registrationNumber || 
-                              caseData.regNumber ||
-                              caseData.caseNumber ||
-                              caseData.case_number
+    // Extract registration number from details.registrationNumber or fallback
+    const registrationNumber = data.details?.registrationNumber || data.registrationNumber || ''
     
-    // Extract parties information from the nested structure
-    const petitioners = apiData.parties?.petitioners || caseData.parties?.petitioners || []
-    const respondents = apiData.parties?.respondents || caseData.parties?.respondents || []
-    const petitionerAdvocates = apiData.parties?.petitionerAdvocates || caseData.parties?.petitionerAdvocates || []
-    const respondentAdvocates = apiData.parties?.respondentAdvocates || caseData.parties?.respondentAdvocates || []
+    // Extract parties from the parties object
+    const petitioners = data.parties?.petitioners || []
+    const respondents = data.parties?.respondents || []
+    const petitionerAdvocates = data.parties?.petitionerAdvocates || []
+    const respondentAdvocates = data.parties?.respondentAdvocates || []
     
-    // Format parties array for the expected structure
+    // Format parties array
     const formattedParties = [
-      ...petitioners.map((name: string) => ({ type: 'PLAINTIFF', name })),
-      ...respondents.map((name: string) => ({ type: 'DEFENDANT', name }))
+      ...petitioners.map((name: string) => ({ type: 'PLAINTIFF' as const, name })),
+      ...respondents.map((name: string) => ({ type: 'DEFENDANT' as const, name }))
     ]
     
     // Format advocates array
     const formattedAdvocates = [
-      ...petitionerAdvocates.map((name: string) => ({ type: 'PETITIONER', name })),
-      ...respondentAdvocates.map((name: string) => ({ type: 'RESPONDENT', name }))
+      ...petitionerAdvocates.map((name: string) => ({ name })),
+      ...respondentAdvocates.map((name: string) => ({ name }))
     ]
     
-    // Extract hearing history
-    const hearingHistory = apiData.history || caseData.history?.hearings || caseData.hearingHistory || []
+    // Extract hearing history - use history array directly
+    const hearingHistory = data.history || []
     const formattedHearingHistory = hearingHistory.map((hearing: any) => ({
-      date: hearing.businessDate || hearing.date || hearing.hearingDate || '',
-      purpose: hearing.purpose || hearing.subject || hearing.description || 'Hearing',
-      judge: hearing.judge || hearing.judgeName || 'Unknown Judge',
-      status: hearing.status || hearing.outcome || '',
-      nextDate: hearing.nextDate || '',
+      date: this.formatDate(hearing.businessDate || hearing.date || ''),
+      purpose: hearing.purpose || 'Hearing',
+      judge: hearing.judge || 'Unknown Judge',
+      status: '',
+      nextDate: this.formatDate(hearing.nextDate || ''),
       url: hearing.url || ''
     }))
 
-    // Extract orders
-    const orders = apiData.orders || caseData.orders || []
+    // Extract orders - use orders array directly
+    const orders = data.orders || []
     const formattedOrders = orders.map((order: any, index: number) => ({
-      number: order.orderNumber || order.number || index + 1,
-      name: order.orderName || order.name || order.description || `Order ${index + 1}`,
-      date: order.orderDate || order.date || '',
-      url: order.url || order.pdfUrl || order.downloadUrl
+      number: order.number || index + 1,
+      name: order.name || `Order ${index + 1}`,
+      date: this.formatDate(order.date || ''),
+      url: order.url || ''
     }))
 
     // Extract acts and sections
-    const actsAndSections = apiData.actsAndSections || caseData.actsAndSections || {}
-    const formattedActsAndSections = actsAndSections.acts || actsAndSections.sections ? {
-      acts: actsAndSections.acts || actsAndSections.actName || '',
-      sections: actsAndSections.sections || actsAndSections.sectionNumbers || ''
-    } : undefined
+    const actsAndSections = data.actsAndSections || {}
 
     return {
       cnr,
       caseNumber: registrationNumber || `REG-${cnr.slice(-6)}`,
-      filingNumber: apiData.filingNumber || caseData.filingNumber || caseData.filingNo || caseData.details?.filingNumber || caseData.filing_number || undefined,
-      title: caseData.title || caseData.case_title || caseData.subject_matter || 'Unknown Case',
-      court: caseData.status?.courtNumberAndJudge || caseData.court_name || caseData.court || caseData.jurisdiction || 'Unknown Court',
-      courtLocation: caseData.location || caseData.court_location || caseData.district || 'Bengaluru Rural',
-      hallNumber: caseData.hall_number || caseData.hall || caseData.court_hall || 'Not specified',
-      caseType: caseData.details?.type || caseData.case_type || caseData.type || caseData.category || 'CIVIL',
-      caseStatus: this.sanitizeHtml(caseData.status?.caseStage || caseData.status || caseData.case_status || caseData.current_status || 'PENDING'),
-      filingDate: this.formatDate(caseData.details?.filingDate || caseData.details?.registrationDate || caseData.filing_date || caseData.date_of_filing || caseData.registration_date || ''),
-      lastHearingDate: this.formatDate(caseData.status?.firstHearingDate || caseData.last_hearing_date || caseData.previous_hearing_date || ''),
-      nextHearingDate: this.formatDate(caseData.status?.nextHearingDate || caseData.next_hearing_date || caseData.upcoming_hearing_date || ''),
+      filingNumber: data.details?.filingNumber || '',
+      title: data.title || 'Unknown Case',
+      court: data.status?.courtNumberAndJudge || 'Unknown Court',
+      courtLocation: 'Bengaluru Rural',
+      hallNumber: 'Not specified',
+      caseType: data.details?.type || 'CIVIL',
+      caseStatus: this.sanitizeHtml(data.status?.caseStage || 'PENDING'),
+      filingDate: this.formatDate(data.details?.filingDate || ''),
+      lastHearingDate: this.formatDate(''), // Not available in response
+      nextHearingDate: this.formatDate(data.status?.nextHearingDate || ''),
       parties: formattedParties,
       advocates: formattedAdvocates,
-      judges: caseData.judges || caseData.bench || caseData.magistrate || [],
+      judges: [],
       hearingHistory: formattedHearingHistory,
       orders: formattedOrders,
-      actsAndSections: formattedActsAndSections,
-      registrationNumber: registrationNumber || '',
-      registrationDate: caseData.registrationDate || caseData.regDate || '',
-      firstHearingDate: caseData.firstHearingDate || caseData.firstHearing?.date || '',
-      decisionDate: caseData.decisionDate || caseData.disposalDate || '',
-      natureOfDisposal: caseData.natureOfDisposal || caseData.disposalType || '',
+      actsAndSections: actsAndSections.acts || actsAndSections.sections ? {
+        acts: actsAndSections.acts || '',
+        sections: actsAndSections.sections || ''
+      } : undefined,
+      registrationNumber: registrationNumber,
+      registrationDate: this.formatDate(data.details?.registrationDate || ''),
+      firstHearingDate: this.formatDate(data.status?.firstHearingDate || ''),
+      decisionDate: this.formatDate(data.status?.decisionDate || ''),
+      natureOfDisposal: data.status?.natureOfDisposal || '',
       caseDetails: {
-        subjectMatter: caseData.title || caseData.subject_matter || caseData.subjectMatter || caseData.nature_of_case || '',
-        caseDescription: caseData.description || caseData.case_description || caseData.facts || '',
-        reliefSought: caseData.relief_sought || caseData.reliefSought || caseData.prayer || '',
-        caseValue: caseData.case_value || caseData.caseValue || caseData.amount_involved,
-        jurisdiction: caseData.jurisdiction || caseData.territorial_jurisdiction || ''
+        subjectMatter: data.title || '',
+        caseDescription: '',
+        reliefSought: '',
+        caseValue: undefined,
+        jurisdiction: ''
       }
     }
   }

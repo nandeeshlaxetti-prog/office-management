@@ -2,9 +2,10 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LogoWithText } from './Logo'
 import { useAuth } from '@/lib/auth-state'
+import { cloudStorageService } from '@/lib/cloud-storage-service'
 import UnifiedSearch from './UnifiedSearch'
 import { ChevronDownIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import { ThemeToggle } from '../../components/theme-toggle'
@@ -14,6 +15,36 @@ export default function Navigation() {
   const router = useRouter()
   const { user, logout, isAuthenticated } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [displayName, setDisplayName] = useState<string | undefined>(user?.name || user?.email)
+  const [displayInitial, setDisplayInitial] = useState<string>('U')
+
+  useEffect(() => {
+    if (user?.email) {
+      loadTeamMemberName()
+    }
+  }, [user])
+
+  const loadTeamMemberName = async () => {
+    try {
+      const teamMembers = await cloudStorageService.getAllTeamMembersSimple()
+      const matchingMember = teamMembers.find(m => 
+        m.email && m.email.toLowerCase() === user?.email?.toLowerCase()
+      )
+      
+      if (matchingMember && matchingMember.name) {
+        console.log('✅ Navigation: Found team member name:', matchingMember.name)
+        setDisplayName(matchingMember.name)
+        setDisplayInitial(matchingMember.name.charAt(0).toUpperCase())
+      } else {
+        setDisplayName(user?.name || user?.email)
+        setDisplayInitial(user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U')
+      }
+    } catch (error) {
+      console.error('❌ Navigation: Failed to load team member name:', error)
+      setDisplayName(user?.name || user?.email)
+      setDisplayInitial(user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U')
+    }
+  }
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
@@ -74,18 +105,18 @@ export default function Navigation() {
                 >
                   <div className="h-8 w-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-white">
-                      {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                      {displayInitial}
                     </span>
                   </div>
-                  <span className="hidden sm:block font-medium">{user.name || user.email}</span>
+                  <span className="hidden sm:block font-medium">{displayName || 'User'}</span>
                   <ChevronDownIcon className="h-4 w-4" />
                 </button>
 
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                     <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{user.name || user.email}</p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                      <p className="text-sm font-medium text-gray-900">{displayName || 'User'}</p>
+                      <p className="text-xs text-gray-500">{user.email || 'No email'}</p>
                     </div>
                     <button
                       onClick={() => {

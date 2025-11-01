@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { cloudStorageService } from '@/lib/cloud-storage-service'
 
 interface Case {
   id: string
@@ -83,8 +84,19 @@ const getCasesFromStorage = (): Case[] => {
 const formatCaseNumber = (caseItem: Case): string => {
   if (!caseItem.caseNumber) return 'Not specified'
   
-  // Format: "OS No. 200/2025" or "CIVIL No. 200/2025"
-  const caseType = caseItem.caseType || 'CIVIL'
+  // Format: "O.S. No. 531/2025" or "CIVIL No. 200/2025"
+  // Handle different case type formats from APIs
+  let caseType = caseItem.caseType || 'CIVIL'
+  
+  // Convert common variations
+  if (caseType === 'O.S.' || caseType === 'OS' || caseType === 'O.S') {
+    caseType = 'O.S.'
+  } else if (caseType === 'CRIMINAL' || caseType === 'CRIM') {
+    caseType = 'CRIMINAL'
+  } else if (caseType === 'CIVIL') {
+    caseType = 'CIVIL'
+  }
+  
   return `${caseType} No. ${caseItem.caseNumber}`
 }
 
@@ -129,9 +141,24 @@ export default function CaseDetailPage({ params }: { params: { id: string } }) {
   })
 
   useEffect(() => {
-    // Load case from localStorage
+    // Load case from cloud storage or localStorage
     const fetchCase = async () => {
       setLoading(true)
+      try {
+        // Try to load from cloud storage first
+        const cloudCases = await cloudStorageService.getAllCases()
+        const foundCase = cloudCases.find((c: any) => c.id === caseId)
+        
+        if (foundCase) {
+          setCaseData(foundCase as Case)
+          setLoading(false)
+          return
+        }
+      } catch (error) {
+        console.error('Error loading case from cloud storage:', error)
+      }
+      
+      // Fallback to localStorage
       const savedCases = localStorage.getItem('legal-cases')
       if (savedCases) {
         const cases = JSON.parse(savedCases)
