@@ -4,7 +4,6 @@
   "outputDirectory": ".next",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "framework": "nextjs",
-  "rootDirectory": "apps/nandeesh-web",
   "env": {
     "NODE_ENV": "production",
     "APP_MODE": "web",
