@@ -1,6 +1,6 @@
 {
   "buildCommand": "cd apps/nandeesh-web && pnpm build",
-  "devCommand": "cd apps/nandeesh-web && pnpm dev",
-  "installCommand": "cd apps/nandeesh-web && pnpm install",
-  "outputDirectory": "apps/nandeesh-web/.next"
+  "outputDirectory": "apps/nandeesh-web/.next",
+  "installCommand": "cd apps/nandeesh-web && pnpm install --no-frozen-lockfile",
+  "devCommand": "cd apps/nandeesh-web && pnpm dev"
 }
