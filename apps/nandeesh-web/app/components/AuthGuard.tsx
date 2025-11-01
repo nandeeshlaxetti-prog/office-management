@@ -65,6 +65,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       router.replace('/dashboard')
       return
     }
+
+    // If user is NOT authenticated and on root page, redirect to login
+    if (!isAuthenticated && pathname === '/') {
+      router.replace('/login')
+      return
+    }
   }, [isAuthenticated, isLoading, pathname, router])
 
   // Show loading spinner while checking authentication

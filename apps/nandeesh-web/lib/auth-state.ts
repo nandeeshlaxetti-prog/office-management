@@ -78,20 +78,26 @@ export const useFirebaseAuth = () => {
   const { setAuthenticated } = useAuth()
 
   useEffect(() => {
-    const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const profile = await FirebaseAuthService.getUserProfile(firebaseUser.uid)
-          setAuthenticated(true, profile)
-        } catch (error) {
-          console.error('Failed to get user profile:', error)
+    try {
+      const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const profile = await FirebaseAuthService.getUserProfile(firebaseUser.uid)
+            setAuthenticated(true, profile)
+          } catch (error) {
+            console.warn('Failed to get user profile:', error)
+            setAuthenticated(false)
+          }
+        } else {
           setAuthenticated(false)
         }
-      } else {
-        setAuthenticated(false)
-      }
-    })
+      })
 
-    return () => unsubscribe()
+      return () => unsubscribe()
+    } catch (error) {
+      // Firebase not configured or initialization error - silently set as not authenticated
+      console.warn('Firebase auth initialization warning:', error)
+      setAuthenticated(false)
+    }
   }, [setAuthenticated])
 }

@@ -284,8 +284,32 @@ export default function LoginPage() {
             Sign in with Google
           </button>
 
-
-
+          {/* Toggle between Sign In and Sign Up */}
+          <div className="mt-4 text-center text-sm text-gray-600">
+            {isSignUp ? (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  className="text-amber-600 hover:text-amber-700 font-medium"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(true)}
+                  className="text-amber-600 hover:text-amber-700 font-medium"
+                >
+                  Create one
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
